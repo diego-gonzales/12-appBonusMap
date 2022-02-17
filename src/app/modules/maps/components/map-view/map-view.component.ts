@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import { PlacesService } from '../../services';
+import { MapsService, PlacesService } from '../../services';
 import { Map, Popup, Marker } from 'mapbox-gl';
 
 @Component({
@@ -11,12 +11,14 @@ export class MapViewComponent implements AfterViewInit {
 
   @ViewChild('divMap') divMapElement!: ElementRef<HTMLDivElement>;
 
-  constructor(private placesService: PlacesService) {}
+  constructor(
+    private placesService: PlacesService,
+    private mapsService: MapsService
+  ) {}
 
   ngAfterViewInit(): void {
     // This error should never be seen because we did a validation in the service
-    if (!this.placesService.userLocation)
-      throw Error('There is not placesService.userLocation');
+    if (!this.placesService.userLocation) throw Error('There is not placesService.userLocation');
 
     const map = new Map({
       container: this.divMapElement.nativeElement, // container ID
@@ -35,5 +37,7 @@ export class MapViewComponent implements AfterViewInit {
       .setLngLat(this.placesService.userLocation)
       .setPopup(popup)
       .addTo(map)
+
+    this.mapsService.setMap(map);
   }
 }
