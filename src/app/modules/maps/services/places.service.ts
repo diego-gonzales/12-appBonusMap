@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { PlacesResponse, Feature } from '../interfaces/places.interface';
+import { PlacesApiClient } from '../api';
+import { MapsService } from '.';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +18,9 @@ export class PlacesService {
   };
 
   constructor(
-    private http: HttpClient
+    private http: HttpClient,
+    private placesApi: PlacesApiClient,
+    private mapsService: MapsService
   ) {
     this.getUserLocation();
   }
@@ -39,16 +43,30 @@ export class PlacesService {
 
   getPlacesByQuery(query: string = '') {
 
+    if (query.length === 0) {
+      this.isLoadingPlaces = false;
+      this.places = [];
+      return;
+    };
+
+    if (!this.userLocation) throw Error('There is not User location'); // or you can write only 'return'
+
     this.isLoadingPlaces = true;
 
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${query}.json?country=pe&proximity=-78.51744570065587%2C-7.157121853549555&types=place%2Cpostcode%2Caddress&language=es&access_token=pk.eyJ1IjoiZGllZ29lZ2oiLCJhIjoiY2ttcDlvYjVsMGV6OTJ2cXB5YTdtbm5rMSJ9.noDE8WEnh0vXhl38LZxHdw`;
+    const url = `/${query}.json`;
 
-    this.http.get<PlacesResponse>(url)
-      .subscribe(
-        (resp) => {
-          this.isLoadingPlaces = false;
-          this.places = resp.features;
-        }
-      );
+    this.placesApi.get<PlacesResponse>(url, {
+      params: {
+        proximity: this.userLocation.join(',') // userLocation: [number,number] => join => number,number
+      }
+    }).subscribe(
+      (resp) => {
+        console.log(resp.features);
+        this.isLoadingPlaces = false;
+        this.places = resp.features;
+
+        this.mapsService.createMarkersFromPlaces(this.places, this.userLocation!);
+      }
+    );
   };
 }
