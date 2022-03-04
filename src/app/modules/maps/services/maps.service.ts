@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
-import { LngLatBounds, LngLatLike, Map, Marker, Popup } from 'mapbox-gl';
+import { AnySourceData, LngLatBounds, LngLatLike, Map, Marker, Popup } from 'mapbox-gl';
+import { DirectionsApiClient } from '../api';
 import { Feature } from '../interfaces/places.interface';
+import { DirectionsResponse, Route } from '../interfaces/directions.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -14,11 +16,13 @@ export class MapsService {
     return !!this.map; // verifica que la propiedad de arriba tenga un valor, por eso el !!
   };
 
-  constructor() { }
+  constructor(
+    private directionsApi: DirectionsApiClient
+  ) { }
 
   setMap(map: Map) {
     this.map = map;
-  };
+  }
 
   flyTo(coords: LngLatLike) {
     if (!this.isMapReady) throw Error('Map is not ready');
@@ -27,7 +31,7 @@ export class MapsService {
       zoom: 14,
       center: coords
     });
-  };
+  }
 
   createMarkersFromPlaces(places: Feature[], userLocation: [number, number]) {
     if (!this.map) return; // or throw Error
@@ -68,5 +72,66 @@ export class MapsService {
     this.map.fitBounds(bounds, {
       padding: 200
     });
-  };
+  }
+
+  getRouteBetweenPoints(start: [number, number], end: [number, number]) {
+    this.directionsApi.get<DirectionsResponse>(`/${start.join(',')};${end.join(',')}`)
+      .subscribe(resp => this.drawLineString(resp.routes[0]))
+  }
+
+  private drawLineString(route: Route) {
+    console.log({ distance_kms: route.distance / 1000, duration: route.duration / 60 })
+    if (!this.map) throw Error('Mapa is not initialized');
+
+    const bounds = new LngLatBounds();
+
+    const coords = route.geometry.coordinates;
+    coords.forEach(([lng, lat]) => bounds.extend([lng, lat]));
+
+    this.map.fitBounds(bounds, {
+      padding: 200
+    });
+
+    // LineString
+    // Se define el source
+    const sourceData: AnySourceData = {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: coords
+            }
+          }
+        ]
+      }
+    }
+
+    // Limpiamos el layer antes de dibujar otro
+    if (this.map.getLayer('MyLineString')) {
+      this.map.removeLayer('MyLineString');
+      this.map.removeSource('MyLineString');
+    };
+
+    // Se añade al mapa
+    this.map.addSource('MyLineString', sourceData);
+    // Se define como quieres que se vea
+    this.map.addLayer({
+      id: 'MyLineString', // nombre no tiene que ser igual que lo de arriba
+      type: 'line',
+      source: 'MyLineString',
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round'
+      },
+      paint: {
+        'line-color': 'black',
+        'line-width': 3
+      }
+    });
+  }
 }

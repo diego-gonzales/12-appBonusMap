@@ -14,7 +14,7 @@ export class PlacesService {
   public places: Feature[] = [];
 
   get isUserLocationReady(): boolean {
-    return !!this.userLocation;
+    return !!this.userLocation; /* Doble !! en pocas palabras es un casteo a un booleano */
   };
 
   constructor(
