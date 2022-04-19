@@ -38,6 +38,9 @@ export class SearchResultsComponent implements OnInit {
     // Validación de más si ýa sabemos que en este punto ya tenemos la localización del usuario.
     // if (!this.placesService.userLocation) throw Error('User location is not avalaible');
 
+    // Esto habilitaría el ngIf del template y no se mostraría mis resultados una vez que haga click en 'Direction'
+    this.placesService.cleanPlaces();
+
     const start = this.placesService.userLocation!; // signo ! para decirle que estamos seguros de que ya hay localización
     const end = place.center as [number, number]; // end by default is number[] type
 

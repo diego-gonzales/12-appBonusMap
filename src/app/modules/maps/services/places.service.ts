@@ -39,7 +39,7 @@ export class PlacesService {
         }
       )
     })
-  };
+  }
 
   getPlacesByQuery(query: string = '') {
 
@@ -68,5 +68,9 @@ export class PlacesService {
         this.mapsService.createMarkersFromPlaces(this.places, this.userLocation!);
       }
     );
-  };
+  }
+
+  cleanPlaces() {
+    this.places = [];
+  }
 }
